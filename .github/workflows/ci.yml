@@ -1,0 +1,33 @@
+name: Ciudad Furia CI/CD
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+
+jobs:
+  quality-gate:
+    name: Guardian of Quality
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Checkout del código
+        uses: actions/checkout@v4
+
+      - name: ⚙️ Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20" # Versión LTS estándar para Next.js
+          cache: "npm"
+
+      - name: 📦 Instalar dependencias
+        run: npm ci
+
+      - name: 🧹 Ejecutar Linter
+        # Verifica que el formato del código sea correcto.
+        run: npm run lint
+
+      - name: 🏗️ Build (Type Check & Compilación)
+        # En Next.js, hacer build también valida estrictamente los tipos de TypeScript.
+        run: npm run build
