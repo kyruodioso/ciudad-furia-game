@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import { RigidBody } from "@react-three/rapier";
+import { PhysicsBox } from "./PhysicsBox";
 
 export function SciFiRoom() {
   return (
@@ -162,6 +163,13 @@ export function SciFiRoom() {
           side={THREE.DoubleSide}
         />
       </mesh>
+
+      {/* 5. Target Practice: Torre Inestable de Cajas */}
+      <PhysicsBox position={[-5, 0.6, -5]} />
+      <PhysicsBox position={[-5, 1.7, -5]} />
+      <PhysicsBox position={[-5, 2.8, -5]} />
+      <PhysicsBox position={[-5, 3.9, -5]} />
+      <PhysicsBox position={[-5, 5.0, -5]} />
     </group>
   );
 }
