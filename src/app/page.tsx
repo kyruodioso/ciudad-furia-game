@@ -1,8 +1,10 @@
 "use client";
 
+import * as THREE from "three";
 import { Canvas } from "@react-three/fiber";
 import { KeyboardControls } from "@react-three/drei";
 import { Physics } from "@react-three/rapier";
+import { EffectComposer, Bloom } from "@react-three/postprocessing";
 import { Player } from "@/components/player/Player";
 import { SciFiRoom } from "@/components/environment/SciFiRoom";
 
@@ -18,7 +20,13 @@ export default function GamePage() {
   return (
     <main className="w-full h-full relative bg-black">
       <KeyboardControls map={keyboardMap}>
-        <Canvas camera={{ fov: 75 }}>
+        <Canvas
+          camera={{ fov: 75 }}
+          gl={{
+            toneMapping: THREE.ACESFilmicToneMapping,
+            toneMappingExposure: 1,
+          }}
+        >
           <color attach="background" args={["#000000"]} />
 
           {/* Motor de Físicas Maestro */}
@@ -26,6 +34,10 @@ export default function GamePage() {
             <SciFiRoom />
             <Player />
           </Physics>
+
+          <EffectComposer>
+            <Bloom luminanceThreshold={1.2} mipmapBlur intensity={1.5} />
+          </EffectComposer>
         </Canvas>
 
         {/* HUD Crosshair Minimalista */}
