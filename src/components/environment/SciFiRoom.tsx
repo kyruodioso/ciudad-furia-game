@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import { RigidBody } from "@react-three/rapier";
 import { PhysicsBox } from "./PhysicsBox";
+import { WeaponPickup } from "./WeaponPickup";
 
 export function SciFiRoom() {
   return (
@@ -170,6 +171,24 @@ export function SciFiRoom() {
       <PhysicsBox position={[-5, 2.8, -5]} />
       <PhysicsBox position={[-5, 3.9, -5]} />
       <PhysicsBox position={[-5, 5.0, -5]} />
+
+      {/* 6. Altar de Armas (Loot / Inventario) */}
+      <group position={[5, 0, 5]}>
+        {/* Pedestal estático en el suelo (1m de altura, centrado en Y=0.5) */}
+        <RigidBody type="fixed" colliders="cuboid">
+          <mesh position={[0, 0.5, 0]}>
+            <boxGeometry args={[1.2, 1, 1.2]} />
+            <meshStandardMaterial
+              color="#1a1c22"
+              metalness={0.8}
+              roughness={0.3}
+            />
+          </mesh>
+        </RigidBody>
+
+        {/* El botín suspendido arriba del pedestal */}
+        <WeaponPickup position={[0, 1.5, 0]} />
+      </group>
     </group>
   );
 }

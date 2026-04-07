@@ -2,10 +2,12 @@ import { useRef, useEffect } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import { useRapier } from "@react-three/rapier";
 import * as THREE from "three";
+import { usePlayerStore } from "@/store/usePlayerStore";
 
 export function PlayerHands() {
   const { camera } = useThree();
   const { rapier, world } = useRapier();
+  const { hasWeapon, equipWeapon } = usePlayerStore();
   const rightHandRef = useRef<THREE.Mesh>(null);
   const leftHandRef = useRef<THREE.Mesh>(null);
 
@@ -39,6 +41,17 @@ export function PlayerHands() {
       if (hit && hit.collider) {
         const rigidBody = hit.collider.parent();
 
+        // --- 1. EVALUAR INTERACCIÓN (Loot) ---
+        if (rigidBody && rigidBody.userData) {
+          const ud = rigidBody.userData as any;
+          if (ud.type === "pickup") {
+            equipWeapon();
+            if (ud.onPickup) ud.onPickup();
+            return; // Abortar física, solo tomamos el arma
+          }
+        }
+
+        // --- 2. IMPACTO CINETICO (Dummies/Enemies) ---
         // Protegemos el motor verificando que el body existe Y es Dinámico (Evita panicos de memory bounds)
         // isDynamic() está en las versiones estándar, o evaluamos bodyType() directo
         const isBodyDynamic =
@@ -64,7 +77,7 @@ export function PlayerHands() {
 
     window.addEventListener("pointerdown", handlePointerDown);
     return () => window.removeEventListener("pointerdown", handlePointerDown);
-  }, [camera, rapier, world]);
+  }, [camera, rapier, world, equipWeapon]);
 
   // Update a 60 FPS o más
   useFrame((state, delta) => {
@@ -128,6 +141,29 @@ export function PlayerHands() {
       >
         <boxGeometry args={[0.08, 0.6, 0.08]} />
         <meshStandardMaterial color="#3d4045" metalness={0.7} roughness={0.3} />
+
+        {/* --- MODELO PROCEDURAL DEL ARMA (RENDER CONDICIONAL DEL INVENTARIO) --- */}
+        {hasWeapon && (
+          <mesh position={[0, 0.4, 0.05]}>
+            <cylinderGeometry args={[0.04, 0.05, 0.8, 8]} />
+            <meshStandardMaterial
+              color="#111"
+              metalness={0.9}
+              roughness={0.1}
+            />
+
+            {/* Boquilla de plasma brillante */}
+            <mesh position={[0, 0.41, 0]}>
+              <cylinderGeometry args={[0.03, 0.03, 0.05, 8]} />
+              <meshStandardMaterial
+                color="#00ffcc"
+                emissive="#00ffcc"
+                emissiveIntensity={2}
+                toneMapped={false}
+              />
+            </mesh>
+          </mesh>
+        )}
       </mesh>
     </group>
   );
