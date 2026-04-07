@@ -6,12 +6,12 @@ export function HandsModel() {
 
   return (
     <group ref={groupRef} position={[0, -0.2, -0.5]}>
-      {/* Left Hand */}
+      {/* Mano Izquierda */}
       <mesh position={[-0.4, -0.2, 0]} rotation={[0.4, 0.4, 0]}>
         <boxGeometry args={[0.15, 0.15, 0.4]} />
         <meshStandardMaterial color="#d4b49c" />
       </mesh>
-      {/* Right Hand */}
+      {/* Mano Derecha */}
       <mesh position={[0.4, -0.2, 0]} rotation={[0.4, -0.4, 0]}>
         <boxGeometry args={[0.15, 0.15, 0.4]} />
         <meshStandardMaterial color="#d4b49c" />
