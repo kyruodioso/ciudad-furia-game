@@ -14,12 +14,23 @@ export function PlayerHands() {
   const isPunching = useRef(false);
   const punchProgress = useRef(0);
 
+  const fireProgress = useRef(0);
+  const weaponMeshRef = useRef<THREE.Mesh>(null);
+  const muzzleFlashRef = useRef<THREE.PointLight>(null);
+  const muzzleMeshRef = useRef<THREE.Mesh>(null);
+
   useEffect(() => {
     const handlePointerDown = (e: PointerEvent) => {
-      if (e.button !== 0 || isPunching.current) return;
+      // Evitar que dispare/golpee superpuesto rápido
+      if (e.button !== 0 || isPunching.current || fireProgress.current > 0.5)
+        return;
 
-      isPunching.current = true;
-      punchProgress.current = 1; // 1 = Máxima extensión instantánea
+      if (hasWeapon) {
+        fireProgress.current = 1;
+      } else {
+        isPunching.current = true;
+        punchProgress.current = 1; // 1 = Máxima extensión instantánea
+      }
 
       // --- HITSCAN RAYCAST LOGIC ---
       const direction = new THREE.Vector3();
@@ -33,7 +44,7 @@ export function PlayerHands() {
 
       // Generar el rayo inmaculado del motor físico
       const ray = new rapier.Ray(origin, direction);
-      const MAX_DISTANCE = 2.0;
+      const MAX_DISTANCE = hasWeapon ? 100.0 : 2.0;
 
       // Dispararlo por nuestro mundo de colisionadores
       const hit = world.castRay(ray, MAX_DISTANCE, true);
@@ -66,8 +77,9 @@ export function PlayerHands() {
           if (!isNaN(safeToi)) {
             const hitPoint = origin.clone().addScaledVector(direction, safeToi);
 
-            const impulseForce = direction.clone().multiplyScalar(15);
-            impulseForce.y += 5;
+            const forceMulti = hasWeapon ? 200 : 15;
+            const impulseForce = direction.clone().multiplyScalar(forceMulti);
+            impulseForce.y += hasWeapon ? 10 : 5;
 
             rigidBody.applyImpulseAtPoint(impulseForce, hitPoint, true);
           }
@@ -77,7 +89,7 @@ export function PlayerHands() {
 
     window.addEventListener("pointerdown", handlePointerDown);
     return () => window.removeEventListener("pointerdown", handlePointerDown);
-  }, [camera, rapier, world, equipWeapon]);
+  }, [camera, rapier, world, equipWeapon, hasWeapon]);
 
   // Update a 60 FPS o más
   useFrame((state, delta) => {
@@ -97,6 +109,18 @@ export function PlayerHands() {
       if (punchProgress.current < 0.01) {
         isPunching.current = false;
         punchProgress.current = 0;
+      }
+    }
+
+    // Transición del Fuego/Recoil Matemático
+    if (fireProgress.current > 0) {
+      fireProgress.current = THREE.MathUtils.lerp(
+        fireProgress.current,
+        0,
+        15 * delta,
+      );
+      if (fireProgress.current < 0.01) {
+        fireProgress.current = 0;
       }
     }
 
@@ -121,6 +145,22 @@ export function PlayerHands() {
       const rotZ = punchProgress.current * Math.PI * 0.1;
       rightHandRef.current.rotation.set(Math.PI / 2, 0, rotZ);
     }
+
+    // Weapon Recoil Animation
+    if (weaponMeshRef.current) {
+      // Mueve el arma hacia atrás (local Y baja desde 0.4 a 0.25)
+      weaponMeshRef.current.position.y = 0.4 - fireProgress.current * 0.15;
+
+      // Muzzle Flash sync
+      if (muzzleFlashRef.current) {
+        muzzleFlashRef.current.intensity = fireProgress.current * 300;
+      }
+      if (muzzleMeshRef.current && muzzleMeshRef.current.material) {
+        (
+          muzzleMeshRef.current.material as THREE.MeshStandardMaterial
+        ).emissiveIntensity = fireProgress.current * 50;
+      }
+    }
   });
 
   return (
@@ -144,7 +184,7 @@ export function PlayerHands() {
 
         {/* --- MODELO PROCEDURAL DEL ARMA (RENDER CONDICIONAL DEL INVENTARIO) --- */}
         {hasWeapon && (
-          <mesh position={[0, 0.4, 0.05]}>
+          <mesh ref={weaponMeshRef} position={[0, 0.4, 0.05]}>
             <cylinderGeometry args={[0.04, 0.05, 0.8, 8]} />
             <meshStandardMaterial
               color="#111"
@@ -160,6 +200,36 @@ export function PlayerHands() {
                 emissive="#00ffcc"
                 emissiveIntensity={2}
                 toneMapped={false}
+              />
+            </mesh>
+
+            {/* VFx: Muzzle Flash dinámico */}
+            <pointLight
+              ref={muzzleFlashRef}
+              position={[0, 0.5, 0]}
+              color="#ffffaa"
+              intensity={0}
+              distance={15}
+            />
+            <mesh
+              ref={muzzleMeshRef}
+              position={[0, 0.45, 0]}
+              rotation={[Math.PI / 2, 0, 0]}
+              scale={[
+                fireProgress.current * 0.2 + 0.01,
+                fireProgress.current * 0.2 + 0.01,
+                1,
+              ]}
+            >
+              <planeGeometry args={[1, 1]} />
+              <meshStandardMaterial
+                color="#aaffff"
+                emissive="#88ffff"
+                emissiveIntensity={0}
+                toneMapped={false}
+                transparent
+                opacity={0.9}
+                side={THREE.DoubleSide}
               />
             </mesh>
           </mesh>
