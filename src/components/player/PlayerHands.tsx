@@ -3,6 +3,7 @@ import { useFrame, useThree } from "@react-three/fiber";
 import { useRapier } from "@react-three/rapier";
 import * as THREE from "three";
 import { usePlayerStore } from "@/store/usePlayerStore";
+import { BlasterModel } from "./BlasterModel";
 
 export function PlayerHands() {
   const { camera } = useThree();
@@ -15,7 +16,7 @@ export function PlayerHands() {
   const punchProgress = useRef(0);
 
   const fireProgress = useRef(0);
-  const weaponMeshRef = useRef<THREE.Mesh>(null);
+  const weaponMeshRef = useRef<THREE.Group>(null);
   const muzzleFlashRef = useRef<THREE.PointLight>(null);
   const muzzleMeshRef = useRef<THREE.Mesh>(null);
 
@@ -182,28 +183,22 @@ export function PlayerHands() {
         <boxGeometry args={[0.08, 0.6, 0.08]} />
         <meshStandardMaterial color="#3d4045" metalness={0.7} roughness={0.3} />
 
-        {/* --- MODELO PROCEDURAL DEL ARMA (RENDER CONDICIONAL DEL INVENTARIO) --- */}
+        {/* --- MODELO GLTF ARTÍSTICO DEL ARMA (RENDER CONDICIONAL DEL INVENTARIO) --- */}
         {hasWeapon && (
-          <mesh ref={weaponMeshRef} position={[0, 0.4, 0.05]}>
-            <cylinderGeometry args={[0.04, 0.05, 0.8, 8]} />
-            <meshStandardMaterial
-              color="#111"
-              metalness={0.9}
-              roughness={0.1}
+          <group ref={weaponMeshRef} position={[0, 0.4, -0.05]}>
+            {/* 
+              OFFSET DE ALINEACIÓN DEL MODELO: 
+              - X: Mueve Izquierda/Derecha
+              - Y: Mueve Adelante/Atrás (Profundidad respecto al brazo)
+              - Z: Mueve Arriba/Abajo 
+            */}
+            <BlasterModel
+              position={[-0.15, -0.1, -0.2]}
+              rotation={[-Math.PI / 2, Math.PI / 2, 0]}
+              scale={[0.01, 0.01, 0.01]}
             />
 
-            {/* Boquilla de plasma brillante */}
-            <mesh position={[0, 0.41, 0]}>
-              <cylinderGeometry args={[0.03, 0.03, 0.05, 8]} />
-              <meshStandardMaterial
-                color="#00ffcc"
-                emissive="#00ffcc"
-                emissiveIntensity={2}
-                toneMapped={false}
-              />
-            </mesh>
-
-            {/* VFx: Muzzle Flash dinámico */}
+            {/* VFx: Muzzle Flash dinámico anclado en la punta */}
             <pointLight
               ref={muzzleFlashRef}
               position={[0, 0.5, 0]}
@@ -232,7 +227,7 @@ export function PlayerHands() {
                 side={THREE.DoubleSide}
               />
             </mesh>
-          </mesh>
+          </group>
         )}
       </mesh>
     </group>

@@ -1,0 +1,11 @@
+Model Information:
+* title:	ARX-160 weapon
+* source:	https://sketchfab.com/3d-models/arx-160-weapon-d0fdd93f90bb47eea8c98bbb2ae85d40
+* author:	o0ozexo0o (https://sketchfab.com/dadndan0091)
+
+Model License:
+* license type:	CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+* requirements:	Author must be credited. Commercial use is allowed.
+
+If you use this 3D model in your project be sure to copy paste this credit wherever you share it:
+This work is based on "ARX-160 weapon" (https://sketchfab.com/3d-models/arx-160-weapon-d0fdd93f90bb47eea8c98bbb2ae85d40) by o0ozexo0o (https://sketchfab.com/dadndan0091) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
