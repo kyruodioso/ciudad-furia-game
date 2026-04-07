@@ -1,13 +1,17 @@
 import { useRef } from "react";
-import { useFrame, useThree } from "@react-three/fiber";
-import { PointerLockControls, useKeyboardControls } from "@react-three/drei";
+import { useFrame } from "@react-three/fiber";
+import {
+  PointerLockControls,
+  useKeyboardControls,
+  PerspectiveCamera,
+} from "@react-three/drei";
 import {
   RigidBody,
   RapierRigidBody,
   CapsuleCollider,
 } from "@react-three/rapier";
 import * as THREE from "three";
-import { HandsModel } from "./HandsModel";
+import { PlayerHands } from "./PlayerHands";
 import { usePlayerStore } from "@/store/usePlayerStore";
 
 const SPEED = 5;
@@ -16,18 +20,16 @@ const BOB_AMPLITUDE = 0.05;
 
 export function Player() {
   const [, get] = useKeyboardControls();
-  const { camera } = useThree();
   const rigidBodyRef = useRef<RapierRigidBody>(null);
-  const handsGroupRef = useRef<THREE.Group>(null);
+  const cameraRef = useRef<THREE.PerspectiveCamera>(null);
   const { setVelocity } = usePlayerStore();
 
   const direction = new THREE.Vector3();
-  const frontVector = new THREE.Vector3();
-  const sideVector = new THREE.Vector3();
   const viewBobTime = useRef(0);
 
   useFrame((state, delta) => {
-    if (!rigidBodyRef.current) return;
+    if (!rigidBodyRef.current || !cameraRef.current) return;
+    const camera = cameraRef.current;
 
     const { forward, backward, left, right } = get();
 
@@ -51,47 +53,37 @@ export function Player() {
     direction.addScaledVector(rightVector, sideMag);
     direction.normalize().multiplyScalar(SPEED);
 
-    // 3. Empuje Dinámico (Rapier)
+    // 4. Empuje Dinámico (Rapier)
     const currentVel = rigidBodyRef.current.linvel();
     rigidBodyRef.current.setLinvel(
       { x: direction.x, y: currentVel.y, z: direction.z },
       true,
     );
 
-    // 4. Copiar Posición Corporal hacia Ojos/Cámara
-    const rbPosition = rigidBodyRef.current.translation();
-    // Desplazamos la cámara hacia arriba (Y) simular la "cabeza" de la cápsula
-    camera.position.set(rbPosition.x, rbPosition.y + 0.6, rbPosition.z);
-
-    // 5. Game Feel: View Bobbing dependiente de la inercia plana real
+    // 5. Game Feel: View Bobbing (mutamos la posicion Y local de la cámara)
     const movementMagnitude = Math.abs(direction.x) + Math.abs(direction.z);
     if (movementMagnitude > 0) {
       viewBobTime.current += delta * 15;
-      camera.position.y +=
+      camera.position.y =
+        0.6 +
         Math.sin(viewBobTime.current * (BOB_FREQUENCY / 15)) * BOB_AMPLITUDE;
     } else {
       viewBobTime.current = 0;
+      // Interpolamos suavemente de regreso a la posición neutra
+      camera.position.y = THREE.MathUtils.lerp(
+        camera.position.y,
+        0.6,
+        delta * 10,
+      );
     }
 
-    // 6. Sincronización Manos Visuales
-    if (handsGroupRef.current) {
-      handsGroupRef.current.position.copy(camera.position);
-      // Aplicamos leve offset para situarlas en POV
-      handsGroupRef.current.translateZ(-0.2);
-      handsGroupRef.current.rotation.copy(camera.rotation);
-    }
-
-    // 7. Store update
+    // 6. Store update
     setVelocity([direction.x, currentVel.y, direction.z]);
   });
 
   return (
     <>
       <PointerLockControls />
-      {/* 
-        Capsule Dynamic: Simula el cuerpo masivo del humano.
-        enabledRotations [false, false, false]: Desactiva que el jugador ruede por las paredes.
-      */}
       <RigidBody
         ref={rigidBodyRef}
         colliders={false}
@@ -104,10 +96,18 @@ export function Player() {
         restitution={0}
       >
         <CapsuleCollider args={[0.5, 0.3]} friction={0} restitution={0} />
+
+        {/* REFACTOR CLAVE: La cámara es hija fáctica de la Cápsula. Soporta el HUD internamente */}
+        <PerspectiveCamera
+          makeDefault
+          ref={cameraRef}
+          position={[0, 0.6, 0]}
+          fov={75}
+        >
+          {/* Los elementos HUD tridimensionales */}
+          <PlayerHands />
+        </PerspectiveCamera>
       </RigidBody>
-      <group ref={handsGroupRef}>
-        <HandsModel />
-      </group>
     </>
   );
 }

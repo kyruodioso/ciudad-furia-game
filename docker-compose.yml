@@ -1,0 +1,20 @@
+version: '3.8'
+
+services:
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    ports:
+      - "3000:3000"
+    volumes:
+      # Sincroniza nuestro código real host con el de Docker para Fast Refresh
+      - .:/app
+      # Volumen anónimo crucial: aisla node_modules del OS del host
+      - /app/node_modules
+      # Volumen anónimo crucial para fixes de EACCES: aisla la carpeta .next del host
+      - /app/.next
+    environment:
+      - CHOKIDAR_USEPOLLING=true
+      - WATCHPACK_POLLING=true
+      - NODE_ENV=development
