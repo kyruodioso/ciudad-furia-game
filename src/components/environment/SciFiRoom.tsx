@@ -5,6 +5,7 @@ import { WeaponPickup } from "./WeaponPickup";
 import { IronBarPickup } from "./IronBarPickup";
 import { TestDummy } from "./TestDummy";
 import { NarrativeTrigger } from "./NarrativeTrigger";
+import { Dog } from "./Dog";
 
 export function SciFiRoom() {
   return (
@@ -205,6 +206,10 @@ export function SciFiRoom() {
         args={[10, 5, 1.5]}
         dialogueText="¿A eso le llamás golpear? Hasta mi abuela pega más fuerte... y está muerta."
       />
+
+      {/* 10. Compañía: Golden Retriever Companion AI */}
+      {/* Ubicado en Z = 2 para empezar observando al jugador de frente */}
+      <Dog position={[2, 0.1, 2]} />
     </group>
   );
 }
