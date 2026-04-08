@@ -32,7 +32,7 @@ export function NarrativeTrigger({
         onIntersectionEnter={(payload) => {
           if (isOneShot && hasFired.current) return;
 
-          const ud = payload.other.rigidBodyObject?.userData as any;
+          const ud = payload.other.rigidBodyObject?.userData as { type?: string };
           if (ud && ud.type === "player") {
             hasFired.current = true;
             useStoryStore.getState().triggerDialogue(dialogueText, duration);

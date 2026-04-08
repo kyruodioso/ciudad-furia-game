@@ -70,12 +70,15 @@ export function PlayerHands() {
       // --- PIERCING MECHANIC ---
       // Traspasamos entidades fantasmas (como Narrative Triggers) para no bloquear impactos reales
       while (hit && hit.collider) {
-        const parentRb = hit.collider.parent() as any;
-        const colAny = hit.collider as any;
+        const parentRb = hit.collider.parent() as { userData?: { type?: string } } | null;
+        const colAny = hit.collider as { userData?: { type?: string } };
         const ud = parentRb?.userData ?? colAny?.userData;
 
         if (ud && ud.type === "trigger") {
-          const safeToi = (hit as any).toi ?? (hit as any).timeOfImpact ?? 0;
+          const safeToi =
+            (hit as { toi?: number; timeOfImpact?: number }).toi ??
+            (hit as { toi?: number; timeOfImpact?: number }).timeOfImpact ??
+            0;
           currentDistance -= safeToi + 0.05; // Adelantamos el origen para saltar la pared del trigger
 
           if (currentDistance <= 0) {
@@ -106,7 +109,11 @@ export function PlayerHands() {
 
         // --- 1. EVALUAR INTERACCIÓN (Loot) ---
         if (rigidBody && rigidBody.userData) {
-          const ud = rigidBody.userData as any;
+          const ud = rigidBody.userData as {
+            type?: string;
+            item?: "blaster" | "iron_bar";
+            onPickup?: () => void;
+          };
           if (ud.type === "pickup") {
             usePlayerStore.getState().pickupWeapon(ud.item || "blaster");
             if (ud.onPickup) ud.onPickup();
@@ -122,7 +129,10 @@ export function PlayerHands() {
             : rigidBody?.bodyType() === rapier.RigidBodyType.Dynamic;
 
         if (rigidBody) {
-          const ud = rigidBody.userData as any;
+          const ud = rigidBody.userData as {
+            type?: string;
+            receiveDamage?: (damage: number) => void;
+          };
 
           if (
             ud &&
@@ -135,7 +145,10 @@ export function PlayerHands() {
 
           if (isBodyDynamic) {
             // Sanitizamos el toi para uso en point impulsing
-            const safeToi = (hit as any).toi ?? (hit as any).timeOfImpact ?? 0;
+            const safeToi =
+              (hit as { toi?: number; timeOfImpact?: number }).toi ??
+              (hit as { toi?: number; timeOfImpact?: number }).timeOfImpact ??
+              0;
 
             if (!isNaN(safeToi)) {
               const hitPoint = origin

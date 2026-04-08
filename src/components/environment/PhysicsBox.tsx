@@ -1,4 +1,3 @@
-import * as THREE from "three";
 import { RigidBody } from "@react-three/rapier";
 
 interface PhysicsBoxProps {

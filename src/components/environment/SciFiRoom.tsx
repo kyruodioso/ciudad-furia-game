@@ -1,4 +1,3 @@
-import * as THREE from "three";
 import { RigidBody, CuboidCollider } from "@react-three/rapier";
 import { PhysicsBox } from "./PhysicsBox";
 import { WeaponPickup } from "./WeaponPickup";

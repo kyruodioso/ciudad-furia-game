@@ -49,7 +49,7 @@ export const useAudioStore = create<AudioState>((set, get) => ({
     if (!ctx) {
       // Soporte para navegadores antiguos y normalización
       const AudioContextClass =
-        window.AudioContext || (window as any).webkitAudioContext;
+        window.AudioContext || (window as typeof window & { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
       if (!AudioContextClass) {
         console.error(
           "[AudioStore] AudioContext no soportado en este navegador.",
@@ -78,7 +78,7 @@ export const useAudioStore = create<AudioState>((set, get) => ({
     let ctx = state.audioContext;
     if (!ctx) {
       const AudioContextClass =
-        window.AudioContext || (window as any).webkitAudioContext;
+        window.AudioContext || (window as typeof window & { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
       if (!AudioContextClass) return;
       ctx = new AudioContextClass();
       set({ audioContext: ctx });

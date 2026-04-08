@@ -2,7 +2,13 @@ import { useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 
-function FlickeringLight({ position, color, intensity }: any) {
+interface FlickeringLightProps {
+  position: [number, number, number];
+  color: string;
+  intensity: number;
+}
+
+function FlickeringLight({ position, color, intensity }: FlickeringLightProps) {
   const lightRef = useRef<THREE.PointLight>(null);
 
   useFrame(() => {

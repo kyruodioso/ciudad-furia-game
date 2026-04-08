@@ -29,7 +29,7 @@ export function IronBarPickup({ position }: IronBarPickupProps) {
         sensor
         onIntersectionEnter={(payload) => {
           // Si el jugador asume el intersection, recogemos el arma
-          const ud = payload.other.rigidBodyObject?.userData as any;
+          const ud = payload.other.rigidBodyObject?.userData as { type?: string };
           if (ud && ud.type === "player") {
             usePlayerStore.getState().pickupWeapon("iron_bar");
             setPickedUp(true);

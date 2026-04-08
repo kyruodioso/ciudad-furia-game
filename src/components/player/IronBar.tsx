@@ -5,12 +5,7 @@ import { usePlayerStore } from "@/store/usePlayerStore";
 
 export function IronBar() {
   const meshRef = useRef<THREE.Mesh>(null);
-  const isPunching = useRef(false);
-  const punchProgress = useRef(0);
-
-  // Exponer el swing action via un listener global similar al blaster weapon fire
-  // O podemos sincronizar con el store o el evento pointerdown
-  useFrame((state, delta) => {
+  useFrame(() => {
     const activeWeapon = usePlayerStore.getState().activeWeapon;
     if (activeWeapon !== "iron_bar") return;
 
