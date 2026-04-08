@@ -10,7 +10,6 @@ Title: ARX-160 weapon
 import * as THREE from "three";
 import React from "react";
 import { useGLTF } from "@react-three/drei";
-import { GroupProps } from "@react-three/fiber";
 import { GLTF } from "three-stdlib";
 
 type GLTFResult = GLTF & {
@@ -25,7 +24,7 @@ type GLTFResult = GLTF & {
   animations: THREE.AnimationClip[];
 };
 
-export function BlasterModel(props: GroupProps) {
+export function BlasterModel(props: React.ComponentProps<"group">) {
   const { nodes, materials } = useGLTF(
     "/models/blaster.glb",
   ) as unknown as GLTFResult;
