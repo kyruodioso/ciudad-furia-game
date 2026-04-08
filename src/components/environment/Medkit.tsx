@@ -18,7 +18,7 @@ export function Medkit({
   const [collected, setCollected] = useState(false);
   const meshRef = useRef<THREE.Group>(null);
   const { healPlayer } = usePlayerStore();
-  const { playSound } = useAudioStore();
+  const { play2D } = useAudioStore();
 
   useFrame((state) => {
     if (!meshRef.current || collected) return;
@@ -41,7 +41,7 @@ export function Medkit({
           if (payload.other.rigidBodyObject?.userData?.type === "player") {
             setCollected(true);
             healPlayer(30);
-            playSound("sfx_heal"); // Asegurarse de que este asset exista o se maneje en el store
+            play2D("sfx_heal"); // Asegurarse de que este asset exista o se maneje en el store
           }
         }}
       />
