@@ -83,7 +83,7 @@ export function Player() {
 
   return (
     <>
-      <PointerLockControls />
+      <PointerLockControls makeDefault selector="#game-container" />
       <RigidBody
         ref={rigidBodyRef}
         colliders={false}

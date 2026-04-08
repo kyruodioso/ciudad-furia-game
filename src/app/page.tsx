@@ -8,6 +8,7 @@ import { EffectComposer, Bloom } from "@react-three/postprocessing";
 import { Player } from "@/components/player/Player";
 import { SciFiRoom } from "@/components/environment/SciFiRoom";
 import { SubtitlesUI } from "@/components/ui/SubtitlesUI";
+import { SurvivalHUD } from "@/components/ui/SurvivalHUD";
 
 const keyboardMap = [
   { name: "forward", keys: ["ArrowUp", "KeyW"] },
@@ -19,7 +20,7 @@ const keyboardMap = [
 
 export default function GamePage() {
   return (
-    <main className="w-full h-full relative bg-black">
+    <main id="game-container" className="w-full h-full relative bg-black">
       <KeyboardControls map={keyboardMap}>
         <Canvas
           camera={{ fov: 75 }}
@@ -48,6 +49,9 @@ export default function GamePage() {
 
         {/* Narrative Subtitles Engine HUD */}
         <SubtitlesUI />
+
+        {/* Player Survival HUD */}
+        <SurvivalHUD />
       </KeyboardControls>
     </main>
   );
