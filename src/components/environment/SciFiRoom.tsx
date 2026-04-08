@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import { RigidBody } from "@react-three/rapier";
+import { RigidBody, CuboidCollider } from "@react-three/rapier";
 import { PhysicsBox } from "./PhysicsBox";
 import { WeaponPickup } from "./WeaponPickup";
 import { IronBarPickup } from "./IronBarPickup";
@@ -8,25 +8,79 @@ import { Dog } from "./Dog";
 import { Enemy } from "./Enemy";
 import { Atmosphere } from "./Atmosphere";
 import { LevelBlock } from "./LevelBlock";
+import { KeyObject } from "./KeyObject";
+import { ExtractionZone } from "./ExtractionZone";
+import { Medkit } from "./Medkit";
+
+// ─── Límites del nivel (Bordes invisibles) ──────────────────────────────────
+const LEVEL_HALF_W = 14; // mitad del ancho (X)
+const LEVEL_HALF_D = 18; // mitad del largo (Z)
+const LEVEL_CENTER_Z = -10; // centro Z del nivel para cubrir desde spawm hasta extracción
+const WALL_H = 8; // altura de las paredes
+const WALL_T = 1; // grosor de las paredes
 
 export function SciFiRoom() {
   return (
     <group>
-      {/* 
-      {/* Renderizado de Clima y Diseño de Nivel Base */}
+      {/* 1. Atmósfera y Bloques de Nivel (Suelo, Niebla, Luces) */}
       <Atmosphere />
       <LevelBlock />
 
-      {/* 5. Target Practice: Torre Inestable de Cajas */}
+      {/* 2. Bordes invisibles para evitar caídas */}
+      {/* Pared Norte (detrás de la extracción) */}
+      <RigidBody
+        type="fixed"
+        colliders={false}
+        position={[0, WALL_H / 2, LEVEL_CENTER_Z - LEVEL_HALF_D]}
+      >
+        <CuboidCollider args={[LEVEL_HALF_W, WALL_H, WALL_T]} />
+      </RigidBody>
+
+      {/* Pared Sur (detrás del spawn) */}
+      <RigidBody
+        type="fixed"
+        colliders={false}
+        position={[0, WALL_H / 2, LEVEL_CENTER_Z + LEVEL_HALF_D]}
+      >
+        <CuboidCollider args={[LEVEL_HALF_W, WALL_H, WALL_T]} />
+      </RigidBody>
+
+      {/* Pared Oeste (izquierda) */}
+      <RigidBody
+        type="fixed"
+        colliders={false}
+        position={[-LEVEL_HALF_W, WALL_H / 2, LEVEL_CENTER_Z]}
+      >
+        <CuboidCollider args={[WALL_T, WALL_H, LEVEL_HALF_D]} />
+      </RigidBody>
+
+      {/* Pared Este (derecha) */}
+      <RigidBody
+        type="fixed"
+        colliders={false}
+        position={[LEVEL_HALF_W, WALL_H / 2, LEVEL_CENTER_Z]}
+      >
+        <CuboidCollider args={[WALL_T, WALL_H, LEVEL_HALF_D]} />
+      </RigidBody>
+
+      {/* Techo */}
+      <RigidBody
+        type="fixed"
+        colliders={false}
+        position={[0, WALL_H, LEVEL_CENTER_Z]}
+      >
+        <CuboidCollider args={[LEVEL_HALF_W, WALL_T, LEVEL_HALF_D]} />
+      </RigidBody>
+
+      {/* 3. Target Practice: Cajas Físicas */}
       <PhysicsBox position={[-5, 0.6, -5]} />
       <PhysicsBox position={[-5, 1.7, -5]} />
       <PhysicsBox position={[-5, 2.8, -5]} />
       <PhysicsBox position={[-5, 3.9, -5]} />
       <PhysicsBox position={[-5, 5.0, -5]} />
 
-      {/* 6. Altar de Armas (Loot / Inventario) */}
+      {/* 4. Loot: Altar de Armas (Blaster) */}
       <group position={[5, 0, 5]}>
-        {/* Pedestal estático en el suelo (1m de altura, centrado en Y=0.5) */}
         <RigidBody type="fixed" colliders="cuboid">
           <mesh position={[0, 0.5, 0]}>
             <boxGeometry args={[1.2, 1, 1.2]} />
@@ -37,28 +91,34 @@ export function SciFiRoom() {
             />
           </mesh>
         </RigidBody>
-
-        {/* El botín suspendido arriba del pedestal */}
         <WeaponPickup position={[0, 1.5, 0]} />
       </group>
 
-      {/* 7. Loot Inicial: Barra de Hierro en el suelo */}
+      {/* 5. Loot Inicial: Barra de Hierro */}
       <IronBarPickup position={[0, 0.5, 3]} />
 
-      {/* 9. Narrative Volume Trigger (Antes de chocar con el Dummy) */}
+      {/* 6. Narrative: Volumen de Trigger */}
       <NarrativeTrigger
         position={[0, 2, -2.5]}
-        args={[10, 5, 1.5]}
+        args={[10, 5, 2]}
         dialogueText="¿A eso le llamás golpear? Hasta mi abuela pega más fuerte... y está muerta."
       />
 
-      {/* 10. Compañía: Golden Retriever Companion AI */}
-      {/* Ubicado en Z = 2 para empezar observando al jugador de frente */}
+      {/* 7. Compañero: Dog AI */}
       <Dog position={[2, 0.1, 2]} />
 
-      {/* 11. Oportunistas (Enemigos que persiguen a cortas distancias) */}
+      {/* 8. Enemigos: Oportunistas */}
       <Enemy position={[-3, 0.1, -6]} />
       <Enemy position={[3, 0.1, -8]} />
+
+      {/* 9. Objetivo: Transceptor (Interacción clave) */}
+      <KeyObject position={[-6, 0.8, -14]} />
+
+      {/* 10. Victoria: Puerta de Extracción */}
+      <ExtractionZone position={[0, 0, -22]} />
+      {/* 11. Recuperación: Medkits */}
+      <Medkit position={[8, 0.5, 2]} />
+      <Medkit position={[-8, 0.5, -10]} />
     </group>
   );
 }

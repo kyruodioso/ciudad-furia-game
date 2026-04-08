@@ -6,6 +6,11 @@ import { usePlayerStore } from "@/store/usePlayerStore";
 import { BlasterModel } from "./BlasterModel";
 import { IronBar } from "./IronBar";
 
+// ─── Weapon Sway ───────────────────────────────────────────────────────────
+const SWAY_AMOUNT = 0.04; // amplificador del delta del mouse
+const SWAY_MAX = 0.08; // clamp de rotación máxima (rad)
+const SWAY_LERP = 6; // velocidad de retorno a la posición neutra
+
 export function PlayerHands() {
   const { camera } = useThree();
   const { rapier, world } = useRapier();
@@ -20,6 +25,14 @@ export function PlayerHands() {
   const weaponMeshRef = useRef<THREE.Group>(null);
   const muzzleFlashRef = useRef<THREE.PointLight>(null);
   const muzzleMeshRef = useRef<THREE.Mesh>(null);
+
+  // Weapon Sway — refs de mouse y rotación objetivo (Zero Re-renders)
+  const prevMouseX = useRef(0);
+  const prevMouseY = useRef(0);
+  const swayTargetX = useRef(0); // pitch sway (arriba/abajo)
+  const swayTargetZ = useRef(0); // roll sway (izquierda/derecha)
+  // Ref al grupo raíz del arma para aplicar sway sobre el recoil
+  const handsGroupRef = useRef<THREE.Group>(null);
 
   useEffect(() => {
     const handlePointerDown = (e: PointerEvent) => {
@@ -199,12 +212,9 @@ export function PlayerHands() {
       rightHandRef.current.rotation.set(Math.PI / 2, 0, rotZ);
     }
 
-    // Weapon Recoil Animation
+    // ─ Weapon Recoil Animation ───────────────────────────────────────────
     if (weaponMeshRef.current) {
-      // Mueve el arma hacia atrás (local Y baja desde 0.4 a 0.25)
       weaponMeshRef.current.position.y = 0.4 - fireProgress.current * 0.15;
-
-      // Muzzle Flash sync
       if (muzzleFlashRef.current) {
         muzzleFlashRef.current.intensity = fireProgress.current * 300;
       }
@@ -214,6 +224,39 @@ export function PlayerHands() {
         ).emissiveIntensity = fireProgress.current * 50;
       }
     }
+
+    // ─ Weapon Sway ────────────────────────────────────────────────
+    // Delta del mouse frame a frame (state.mouse es posición normalizada -1..1)
+    const mouseDeltaX = state.mouse.x - prevMouseX.current;
+    const mouseDeltaY = state.mouse.y - prevMouseY.current;
+    prevMouseX.current = state.mouse.x;
+    prevMouseY.current = state.mouse.y;
+
+    // Inercia invertida: el arma se retrasa en dirección opuesta al movimiento del mouse
+    swayTargetZ.current = THREE.MathUtils.clamp(
+      -mouseDeltaX * SWAY_AMOUNT,
+      -SWAY_MAX,
+      SWAY_MAX,
+    );
+    swayTargetX.current = THREE.MathUtils.clamp(
+      mouseDeltaY * SWAY_AMOUNT,
+      -SWAY_MAX,
+      SWAY_MAX,
+    );
+
+    // Aplicar sway al grupo raíz, sumado al recoil de rotación existente
+    if (handsGroupRef.current) {
+      handsGroupRef.current.rotation.z = THREE.MathUtils.lerp(
+        handsGroupRef.current.rotation.z,
+        swayTargetZ.current,
+        delta * SWAY_LERP,
+      );
+      handsGroupRef.current.rotation.x = THREE.MathUtils.lerp(
+        handsGroupRef.current.rotation.x,
+        swayTargetX.current - fireProgress.current * 0.15, // recoil pitch sumado
+        delta * SWAY_LERP,
+      );
+    }
   });
 
   if (activeWeapon === "none") {
@@ -221,7 +264,7 @@ export function PlayerHands() {
   }
 
   return (
-    <group>
+    <group ref={handsGroupRef}>
       <mesh
         ref={leftHandRef}
         position={[-0.3, -0.3, -0.5]}

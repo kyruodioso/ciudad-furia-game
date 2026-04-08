@@ -1,5 +1,6 @@
-import { useRef, useMemo, useState } from "react";
-import { useFrame } from "@react-three/fiber";
+import { useRef, useMemo, useState, useEffect } from "react";
+import { useFrame, useThree } from "@react-three/fiber";
+import { Html } from "@react-three/drei";
 import {
   RigidBody,
   RapierRigidBody,
@@ -7,6 +8,14 @@ import {
 } from "@react-three/rapier";
 import * as THREE from "three";
 import { usePlayerStore } from "@/store/usePlayerStore";
+import { useAudioStore } from "@/store/useAudioStore";
+
+// Devuelve el color de la barra según la salud restante
+const hpColor = (hp: number): string => {
+  if (hp >= 60) return "#22c55e"; // Verde — robusto
+  if (hp >= 30) return "#f97316"; // Naranja — alerta
+  return "#ef4444"; // Rojo — crítico
+};
 
 export function Enemy({
   position = [0, 0, 0],
@@ -17,9 +26,15 @@ export function Enemy({
   const rigidBodyRef = useRef<RapierRigidBody>(null);
   const meshGroupRef = useRef<THREE.Group>(null);
   const materialRef = useRef<THREE.MeshStandardMaterial>(null);
+  // Ref para el nodo de audio 3D posicional (instanciado programáticamente)
+  const positionalSoundRef = useRef<THREE.PositionalAudio | null>(null);
+  const audioStarted = useRef(false);
+  const groupRef = useRef<THREE.Group>(null);
 
   const hitFlash = useRef(0);
   const attackCooldown = useRef(0);
+
+  const { camera } = useThree();
 
   const { currentPos, targetPos, lookQuaternion } = useMemo(() => {
     return {
@@ -27,6 +42,77 @@ export function Enemy({
       targetPos: new THREE.Vector3(),
       lookQuaternion: new THREE.Quaternion(),
     };
+  }, []);
+
+  // Crear el audio 3D posicional manualmente — no usamos <PositionalAudio> de Drei
+  // porque crashea el Canvas cuando el archivo no es decodificable. Aquí lo envolvemos
+  // en un try/catch para que sea resiliente a archivos placeholder o inexistentes.
+  useEffect(() => {
+    // Esperar a que el audio esté desbloqueado (gesto del usuario)
+    const unsubscribe = useAudioStore.subscribe(
+      (state) => state.isAudioUnlocked,
+      (unlocked) => {
+        if (!unlocked || audioStarted.current) return;
+        if (!groupRef.current) return;
+
+        const { audioContext } = useAudioStore.getState();
+        if (!audioContext) return;
+
+        try {
+          // Crear el listener en la cámara (si no existe ya)
+          let listener = camera.children.find(
+            (c) => c instanceof THREE.AudioListener,
+          ) as THREE.AudioListener | undefined;
+          if (!listener) {
+            listener = new THREE.AudioListener();
+            camera.add(listener);
+          }
+
+          // Crear el nodo de audio posicional y adjuntarlo al group del enemigo
+          const sound = new THREE.PositionalAudio(listener);
+          sound.setLoop(true);
+          sound.setVolume(1.0);
+
+          // Parámetros de atenuación según Spec 18
+          sound.setDistanceModel("inverse");
+          sound.setRefDistance(3);
+          sound.setMaxDistance(18);
+          sound.setRolloffFactor(1.5);
+          (sound.panner as PannerNode).panningModel = "HRTF";
+
+          // Cargar el buffer de audio — si falla, el juego continúa sin audio
+          const loader = new THREE.AudioLoader();
+          loader.load(
+            "/audio/enemy_growl_loop.mp3",
+            (buffer) => {
+              sound.setBuffer(buffer);
+              if (!sound.isPlaying) sound.play();
+              groupRef.current?.add(sound);
+              positionalSoundRef.current = sound;
+              audioStarted.current = true;
+            },
+            undefined,
+            (err) => {
+              console.warn(
+                "[Enemy] Audio 3D no pudo cargarse (non-fatal):",
+                err,
+              );
+            },
+          );
+        } catch (err) {
+          console.warn("[Enemy] Error al inicializar audio posicional:", err);
+        }
+      },
+    );
+
+    return () => {
+      unsubscribe();
+      // Cleanup al destruir el componente
+      if (positionalSoundRef.current?.isPlaying) {
+        positionalSoundRef.current.stop();
+      }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useFrame((state, delta) => {
@@ -149,6 +235,49 @@ export function Enemy({
           />
         </mesh>
       </group>
+
+      {/* Anchor point para THREE.PositionalAudio adjuntado programáticamente */}
+      <group ref={groupRef} />
+
+      {/*
+        Barra de vida flotante.
+        Solo visible tras recibir daño (hp < 100) para preservar la inmersión
+        y evitar overhead de DOM en enemigos intactos.
+      */}
+      {hp < 100 && (
+        <Html
+          position={[0, 2.2, 0]}
+          center
+          sprite
+          transform
+          zIndexRange={[10, 0]}
+        >
+          {/* Contenedor oscuro */}
+          <div
+            style={{
+              width: "80px",
+              height: "10px",
+              background: "rgba(0,0,0,0.75)",
+              borderRadius: "5px",
+              overflow: "hidden",
+              border: "1px solid rgba(255,255,255,0.15)",
+              boxShadow: "0 0 6px rgba(0,0,0,0.5)",
+            }}
+          >
+            {/* Barra interior — anchura proporcional al HP */}
+            <div
+              style={{
+                width: `${Math.max(0, hp)}%`,
+                height: "100%",
+                background: hpColor(hp),
+                borderRadius: "5px",
+                transition: "width 0.15s ease, background 0.3s ease",
+                boxShadow: `0 0 4px ${hpColor(hp)}88`,
+              }}
+            />
+          </div>
+        </Html>
+      )}
     </RigidBody>
   );
 }

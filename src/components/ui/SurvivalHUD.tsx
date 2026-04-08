@@ -21,6 +21,8 @@ export const SurvivalHUD = () => {
   const hp = usePlayerStore((state) => state.hp);
   const activeWeapon = usePlayerStore((state) => state.activeWeapon);
   const currentSubtitle = useStoryStore((state) => state.currentSubtitle);
+  const hasObjective = useStoryStore((state) => state.hasObjective);
+  const isExtracted = useStoryStore((state) => state.isExtracted);
 
   // Pequeño efecto de estática aleatorio cuando "La Voz" habla
   const [staticPulse, setStaticPulse] = useState(false);
@@ -45,24 +47,35 @@ export const SurvivalHUD = () => {
       {/* Top Section */}
       <div className="w-full flex justify-end">
         {/* Voz Indicator (Estática/Pulso) */}
-        {currentSubtitle && (
-          <div className="flex items-center gap-3 opacity-90 transition-opacity mix-blend-difference bg-black/40 px-3 py-1 border border-red-900/50">
-            <span className="text-red-500 font-mono text-sm uppercase tracking-widest animate-pulse">
-              [ SEÑAL INTRUSA ]
-            </span>
-            <div
-              className={`w-3 h-3 rounded-sm bg-red-600 blur-[1px] transition-all duration-75 ${
-                staticPulse ? "opacity-100 scale-125" : "opacity-40 scale-90"
-              }`}
-            ></div>
-          </div>
-        )}
+        <div className="flex flex-col items-end gap-4">
+          {currentSubtitle && (
+            <div className="flex items-center gap-3 opacity-90 transition-opacity mix-blend-difference bg-black/40 px-3 py-1 border border-red-900/50">
+              <span className="text-red-500 font-mono text-sm uppercase tracking-widest animate-pulse">
+                [ SEÑAL INTRUSA ]
+              </span>
+              <div
+                className={`w-3 h-3 rounded-sm bg-red-600 blur-[1px] transition-all duration-75 ${
+                  staticPulse ? "opacity-100 scale-125" : "opacity-40 scale-90"
+                }`}
+              ></div>
+            </div>
+          )}
+
+          {/* Indicador de Extracción (Solo si tiene el objetivo y no ha ganado) */}
+          {hasObjective && !isExtracted && (
+            <div className="flex items-center gap-3 bg-green-950/60 border border-green-500 px-4 py-2 animate-pulse shadow-[0_0_15px_rgba(34,197,94,0.3)]">
+              <span className="text-green-400 font-mono text-sm font-bold uppercase tracking-[0.2em]">
+                ⬆ EXTRACCIÓN DISPONIBLE
+              </span>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Bottom Section */}
       <div className="w-full flex justify-between items-end">
         {/* Health Bar (Bottom Left) */}
-        <div className="flex flex-col gap-1 w-64 mix-blend-difference">
+        <div className="flex flex-col gap-1 w-64">
           <div className="flex justify-between items-baseline mb-1">
             <span className="text-gray-300 font-mono text-sm tracking-widest font-bold uppercase drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">
               VIT
@@ -76,8 +89,17 @@ export const SurvivalHUD = () => {
               className="absolute top-0 left-0 h-full transition-all duration-300 ease-out"
               style={{
                 width: `${hp}%`,
-                filter: hp < 30 ? "drop-shadow(0 0 4px red)" : "none",
-                background: hp < 30 ? "#7b1717" : "#8A2BE2", // Cambia a rojo si HP < 30, si no violeta crudo
+                transition: "width 0.3s ease-out, background 0.3s ease",
+                filter:
+                  hp < 30
+                    ? "drop-shadow(0 0 6px #ef4444)"
+                    : "drop-shadow(0 0 4px #a855f7)",
+                background:
+                  hp >= 60
+                    ? "linear-gradient(90deg, #7c3aed, #a855f7)"
+                    : hp >= 30
+                      ? "linear-gradient(90deg, #ea580c, #f97316)"
+                      : "linear-gradient(90deg, #991b1b, #ef4444)",
               }}
             ></div>
             {/* Overlay desgastado (ruido simple visual CSS en base64) */}

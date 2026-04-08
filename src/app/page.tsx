@@ -9,6 +9,8 @@ import { Player } from "@/components/player/Player";
 import { SciFiRoom } from "@/components/environment/SciFiRoom";
 import { SubtitlesUI } from "@/components/ui/SubtitlesUI";
 import { SurvivalHUD } from "@/components/ui/SurvivalHUD";
+import { AudioEngine } from "@/components/ui/AudioEngine";
+import { VictoryOverlay } from "@/components/ui/VictoryScreen";
 
 const keyboardMap = [
   { name: "forward", keys: ["ArrowUp", "KeyW"] },
@@ -52,6 +54,12 @@ export default function GamePage() {
 
         {/* Player Survival HUD */}
         <SurvivalHUD />
+
+        {/* Motor de Audio: precarga buffers y vigila subtítulos para SFX narrativo */}
+        <AudioEngine />
+
+        {/* Pantalla de victoria — se monta automáticamente al extraerse */}
+        <VictoryOverlay />
       </KeyboardControls>
     </main>
   );

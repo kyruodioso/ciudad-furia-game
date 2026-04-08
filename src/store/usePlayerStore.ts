@@ -11,6 +11,7 @@ export interface PlayerState {
   equipWeapon: (weaponId: WeaponType) => void;
   pickupWeapon: (weaponId: string) => void;
   receiveDamage: (amount: number) => void;
+  healPlayer: (amount: number) => void;
 }
 
 export const usePlayerStore = create<PlayerState>((set) => ({
@@ -32,4 +33,6 @@ export const usePlayerStore = create<PlayerState>((set) => ({
     }),
   receiveDamage: (amount) =>
     set((state) => ({ hp: Math.max(0, state.hp - amount) })),
+  healPlayer: (amount) =>
+    set((state) => ({ hp: Math.min(100, state.hp + amount) })),
 }));
