@@ -2,6 +2,9 @@ import * as THREE from "three";
 import { RigidBody } from "@react-three/rapier";
 import { PhysicsBox } from "./PhysicsBox";
 import { WeaponPickup } from "./WeaponPickup";
+import { IronBarPickup } from "./IronBarPickup";
+import { TestDummy } from "./TestDummy";
+import { NarrativeTrigger } from "./NarrativeTrigger";
 
 export function SciFiRoom() {
   return (
@@ -189,6 +192,19 @@ export function SciFiRoom() {
         {/* El botín suspendido arriba del pedestal */}
         <WeaponPickup position={[0, 1.5, 0]} />
       </group>
+
+      {/* 7. Loot Inicial: Barra de Hierro en el suelo */}
+      <IronBarPickup position={[0, 0.5, 3]} />
+
+      {/* 8. Saco de Boxeo (Test Dummy) */}
+      <TestDummy position={[0, 1.5, -5]} />
+
+      {/* 9. Narrative Volume Trigger (Antes de chocar con el Dummy) */}
+      <NarrativeTrigger
+        position={[0, 2, -2.5]}
+        args={[10, 5, 1.5]}
+        dialogueText="¿A eso le llamás golpear? Hasta mi abuela pega más fuerte... y está muerta."
+      />
     </group>
   );
 }

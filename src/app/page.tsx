@@ -7,6 +7,7 @@ import { Physics } from "@react-three/rapier";
 import { EffectComposer, Bloom } from "@react-three/postprocessing";
 import { Player } from "@/components/player/Player";
 import { SciFiRoom } from "@/components/environment/SciFiRoom";
+import { SubtitlesUI } from "@/components/ui/SubtitlesUI";
 
 const keyboardMap = [
   { name: "forward", keys: ["ArrowUp", "KeyW"] },
@@ -44,6 +45,9 @@ export default function GamePage() {
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-white pointer-events-none text-2xl font-bold select-none mix-blend-difference">
           +
         </div>
+
+        {/* Narrative Subtitles Engine HUD */}
+        <SubtitlesUI />
       </KeyboardControls>
     </main>
   );

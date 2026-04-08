@@ -94,6 +94,7 @@ export function Player() {
         mass={80}
         friction={0}
         restitution={0}
+        userData={{ type: "player" }}
       >
         <CapsuleCollider args={[0.5, 0.3]} friction={0} restitution={0} />
 

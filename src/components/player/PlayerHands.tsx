@@ -4,11 +4,12 @@ import { useRapier } from "@react-three/rapier";
 import * as THREE from "three";
 import { usePlayerStore } from "@/store/usePlayerStore";
 import { BlasterModel } from "./BlasterModel";
+import { IronBar } from "./IronBar";
 
 export function PlayerHands() {
   const { camera } = useThree();
   const { rapier, world } = useRapier();
-  const { hasWeapon, equipWeapon } = usePlayerStore();
+  const { activeWeapon } = usePlayerStore();
   const rightHandRef = useRef<THREE.Mesh>(null);
   const leftHandRef = useRef<THREE.Mesh>(null);
 
@@ -22,11 +23,13 @@ export function PlayerHands() {
 
   useEffect(() => {
     const handlePointerDown = (e: PointerEvent) => {
+      const currentWeapon = usePlayerStore.getState().activeWeapon;
+
       // Evitar que dispare/golpee superpuesto rápido
       if (e.button !== 0 || isPunching.current || fireProgress.current > 0.5)
         return;
 
-      if (hasWeapon) {
+      if (currentWeapon === "blaster") {
         fireProgress.current = 1;
       } else {
         isPunching.current = true;
@@ -44,11 +47,46 @@ export function PlayerHands() {
       origin.addScaledVector(direction, 0.5);
 
       // Generar el rayo inmaculado del motor físico
-      const ray = new rapier.Ray(origin, direction);
-      const MAX_DISTANCE = hasWeapon ? 100.0 : 2.0;
+      let currentRay = new rapier.Ray(origin, direction);
+      const MAX_DISTANCE = currentWeapon === "blaster" ? 100.0 : 2.0;
+      let currentDistance = MAX_DISTANCE;
 
       // Dispararlo por nuestro mundo de colisionadores
-      const hit = world.castRay(ray, MAX_DISTANCE, true);
+      let hit = world.castRay(currentRay, currentDistance, true);
+
+      // --- PIERCING MECHANIC ---
+      // Traspasamos entidades fantasmas (como Narrative Triggers) para no bloquear impactos reales
+      while (hit && hit.collider) {
+        const parentRb = hit.collider.parent() as any;
+        const colAny = hit.collider as any;
+        const ud = parentRb?.userData ?? colAny?.userData;
+
+        if (ud && ud.type === "trigger") {
+          const safeToi = (hit as any).toi ?? (hit as any).timeOfImpact ?? 0;
+          currentDistance -= safeToi + 0.05; // Adelantamos el origen para saltar la pared del trigger
+
+          if (currentDistance <= 0) {
+            hit = null;
+            break;
+          }
+          const rOrigin = new THREE.Vector3(
+            currentRay.origin.x,
+            currentRay.origin.y,
+            currentRay.origin.z,
+          );
+          const rDir = new THREE.Vector3(
+            currentRay.dir.x,
+            currentRay.dir.y,
+            currentRay.dir.z,
+          );
+          const newOrigin = rOrigin.addScaledVector(rDir, safeToi + 0.05);
+
+          currentRay = new rapier.Ray(newOrigin, direction);
+          hit = world.castRay(currentRay, currentDistance, true);
+        } else {
+          break; // Impactamos en algo relevante (caja, dummy, piso, loot)
+        }
+      }
 
       if (hit && hit.collider) {
         const rigidBody = hit.collider.parent();
@@ -57,32 +95,46 @@ export function PlayerHands() {
         if (rigidBody && rigidBody.userData) {
           const ud = rigidBody.userData as any;
           if (ud.type === "pickup") {
-            equipWeapon();
+            usePlayerStore.getState().pickupWeapon(ud.item || "blaster");
             if (ud.onPickup) ud.onPickup();
             return; // Abortar física, solo tomamos el arma
           }
         }
 
-        // --- 2. IMPACTO CINETICO (Dummies/Enemies) ---
-        // Protegemos el motor verificando que el body existe Y es Dinámico (Evita panicos de memory bounds)
-        // isDynamic() está en las versiones estándar, o evaluamos bodyType() directo
+        // --- 2. IMPACTO CINETICO Y LÓGICA DE DAÑO (Dummies/Enemies/PhysicsBox) ---
+        // Verificación estructural universal
         const isBodyDynamic =
           rigidBody && typeof rigidBody.isDynamic === "function"
             ? rigidBody.isDynamic()
             : rigidBody?.bodyType() === rapier.RigidBodyType.Dynamic;
 
-        if (rigidBody && isBodyDynamic) {
-          // Sanitizamos the toi
-          const safeToi = (hit as any).toi ?? (hit as any).timeOfImpact ?? 0;
+        if (rigidBody) {
+          const ud = rigidBody.userData as any;
 
-          if (!isNaN(safeToi)) {
-            const hitPoint = origin.clone().addScaledVector(direction, safeToi);
+          if (
+            ud &&
+            ud.type === "enemy" &&
+            typeof ud.receiveDamage === "function"
+          ) {
+            const damage = currentWeapon === "blaster" ? 25 : 40;
+            ud.receiveDamage(damage);
+          }
 
-            const forceMulti = hasWeapon ? 200 : 15;
-            const impulseForce = direction.clone().multiplyScalar(forceMulti);
-            impulseForce.y += hasWeapon ? 10 : 5;
+          if (isBodyDynamic) {
+            // Sanitizamos el toi para uso en point impulsing
+            const safeToi = (hit as any).toi ?? (hit as any).timeOfImpact ?? 0;
 
-            rigidBody.applyImpulseAtPoint(impulseForce, hitPoint, true);
+            if (!isNaN(safeToi)) {
+              const hitPoint = origin
+                .clone()
+                .addScaledVector(direction, safeToi);
+
+              const forceMulti = currentWeapon === "blaster" ? 200 : 15;
+              const impulseForce = direction.clone().multiplyScalar(forceMulti);
+              impulseForce.y += currentWeapon === "blaster" ? 10 : 5;
+
+              rigidBody.applyImpulseAtPoint(impulseForce, hitPoint, true);
+            }
           }
         }
       }
@@ -90,7 +142,7 @@ export function PlayerHands() {
 
     window.addEventListener("pointerdown", handlePointerDown);
     return () => window.removeEventListener("pointerdown", handlePointerDown);
-  }, [camera, rapier, world, equipWeapon, hasWeapon]);
+  }, [camera, rapier, world]);
 
   // Update a 60 FPS o más
   useFrame((state, delta) => {
@@ -164,6 +216,10 @@ export function PlayerHands() {
     }
   });
 
+  if (activeWeapon === "none") {
+    return null;
+  }
+
   return (
     <group>
       <mesh
@@ -183,8 +239,9 @@ export function PlayerHands() {
         <boxGeometry args={[0.08, 0.6, 0.08]} />
         <meshStandardMaterial color="#3d4045" metalness={0.7} roughness={0.3} />
 
-        {/* --- MODELO GLTF ARTÍSTICO DEL ARMA (RENDER CONDICIONAL DEL INVENTARIO) --- */}
-        {hasWeapon && (
+        {/* --- MODELO DEL ARMA (RENDER CONDICIONAL DEL INVENTARIO) --- */}
+        {activeWeapon === "iron_bar" && <IronBar />}
+        {activeWeapon === "blaster" && (
           <group ref={weaponMeshRef} position={[0, 0.4, -0.05]}>
             {/* 
               OFFSET DE ALINEACIÓN DEL MODELO: 
